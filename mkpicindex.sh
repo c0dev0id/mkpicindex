@@ -28,13 +28,13 @@ printf '%s' \
 ' > LICENSE
 
 # CONFIGURE
-GALLERY_TITLE="My Gallery"
-GALLERY_ROW_HEIGHT=150
-BODY_STYLE="color:orange; background:black;"
-THUMBNAIL_QUALITY=83
-THUMBNAIL_PATH="thm"
-INCLUDE_FOOTER="FOOTER"
-INCLUDE_HEADER="HEADER"
+GALLERY_TITLE="My Gallery" # browser title
+GALLERY_ROW_HEIGHT=150     # how high will the justified rows be?
+BODY_STYLE="color:orange; background:black;" # <body style="?">
+THUMBNAIL_QUALITY=83       # quality for thumbnails
+THUMBNAIL_PATH="thm"       # relative path to thumbnail folder
+INCLUDE_HEADER="HEADER"    # file with html to include before gallery
+INCLUDE_FOOTER="FOOTER"    # file with html to include after gallery
 
 ### ZE PROGAM STARTZ HERE ##############################################
 cleanup() {
@@ -65,7 +65,7 @@ printf '%s%s%s%s%s\n' \
         <div id="base">'
 
 
-# RESCALE AND PRINT IMAGE SOURCE
+# RESCALE AND ADD IMAGE
 # PARAM 1: original
 #       2: thumbnail_basename
 #       3: thumbnail_format (extension)
@@ -76,7 +76,7 @@ add_image() {
     printf '%s\n' "Adding image: $FILE" >&2
     if ! [ -f "$THUMB.$EXT" ] && [ "$FILE" != "$THUMB.$EXT" ];
         then convert -quality $THUMBNAIL_QUALITY -sharpen 2x2 \
-                     -coalesce -resize 1600x$GALLERY_ROW_HEIGHT\> \
+                     -coalesce -resize 6000x$GALLERY_ROW_HEIGHT\> \
                      -deconstruct "$FILE" "${THUMB}_tmp.$EXT" && \
         mv "${THUMB}_tmp.$EXT" "$THUMB.$EXT"
     fi
@@ -84,7 +84,7 @@ add_image() {
                 | awk '{ print "width="$1" height="$2 }')"
     printf '            %s\n' "<a href=\"$FILE\">"
     printf '                %s\n' "<img $WH src=\"$THUMB.$EXT\">"
-    printf '            %s\n' "</a>"
+    printf '            %s\n' '</a>'
 }
 
 ### MAIN LOOP ##########################################################
