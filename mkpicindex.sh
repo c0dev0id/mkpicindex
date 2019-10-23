@@ -41,6 +41,7 @@ cleanup() {
     # DELETE BROKEN IMAGES
     printf '%s\n' "Removing incomplete thumbnails." >&2
     find $THUMBNAIL_PATH -name "*_tmp.*" -exec rm -v "{}" \;
+    exit 1
 }
 trap cleanup 1 2 3 6
 
