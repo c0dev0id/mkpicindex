@@ -1,7 +1,7 @@
 #!/bin/sh
 
-printf '%s' '
-/*!
+printf '%s' \
+'/*!
  * ISC License (ISC)
  * Copyright 2019 Stefan Hagen
  * 
@@ -30,8 +30,11 @@ printf '%s' '
 # CONFIGURE
 GALLERY_TITLE="My Gallery"
 GALLERY_ROW_HEIGHT=150
+BODY_STYLE="color:orange; background:black;"
 THUMBNAIL_QUALITY=83
 THUMBNAIL_PATH="thm"
+INCLUDE_FOOTER="FOOTER"
+INCLUDE_HEADER="HEADER"
 
 ### ZE PROGAM STARTZ HERE ##############################################
 cleanup() {
@@ -44,17 +47,23 @@ trap cleanup 1 2 3 6
 # CREATE THUMBNAIL DIRECTORY
 mkdir -p $THUMBNAIL_PATH
 
+# INCLUDE CUSTOM HEADER & FOOTER
+FOOTER=$([ -f $INCLUDE_FOOTER ] && cat $INCLUDE_FOOTER | sed 's/^/        /g')
+HEADER=$([ -f $INCLUDE_HEADER ] && cat $INCLUDE_HEADER | sed 's/^/        /g')
+
 # PRINT HEADER
-printf '%s%s%s\n' '<html>
+printf '%s%s%s%s%s\n' \
+'<html>
     <head>
         <title>'"$GALLERY_TITLE"'</title>
         <meta name="viewport" content="width=device-width">
         <link href="style.css" rel="stylesheet">
         <script src="justify.js"></script>
     </head>
-    <body style="color:orange; background:black;">
-        <div id="base">
-'
+    <body style="'"$BODY_STYLE"'">
+'       "$HEADER"'
+        <div id="base">'
+
 
 # RESCALE AND PRINT IMAGE SOURCE
 # PARAM 1: original
@@ -97,8 +106,8 @@ done
 ### MAIN LOOP END ######################################################
 
 # PRINT FOOTER
-printf '%s\n' "
-        </div>
+printf '%s%s\n' \
+"        </div>
         <script>
             \$(\"#base\").justifiedGallery({
                 rowHeight : $GALLERY_ROW_HEIGHT/0.8,
@@ -109,10 +118,11 @@ printf '%s\n' "
                 margins : 3
             });
         </script>
+"        "$FOOTER
     </body>
 </html>"
 
-# ASSETS (style.css, justify.js) #######################################
+### ASSETS (style.css, justify.js) #####################################
 printf '%s' '
 H4sICOmjrl0AA2p1c3RpZnkuanMAvL15e9tGsi/8//spRIwPBzCblOgs9wwohI8jO4kz2e1M
 MkMxeSCyKSGiAAYAtUTk+ey3ftULGgvlzNx738xYxNLotbq69jp+3jv67futzB+Obj8YfTga
