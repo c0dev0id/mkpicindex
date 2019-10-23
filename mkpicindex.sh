@@ -1,23 +1,54 @@
 #!/bin/sh
 
-# READ CONFIG FILE
-. $PWD/config.mk
+printf '%s' '
+/*!
+ * ISC License (ISC)
+ * Copyright 2019 Stefan Hagen
+ * 
+ * Permission to use, copy, modify, and/or distribute this software for
+ * any purpose with or without fee is hereby granted, provided that
+ * the above copyright notice and this permission notice appear in all
+ * copies.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
+ * WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
+ * AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL
+ * DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA
+ * OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
+ * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+ * PERFORMANCE OF THIS SOFTWARE.
+ * 
+ * Used Software:
+ * justifiedGallery - v4.0.0-alpha
+ * http://miromannino.github.io/Justified-Gallery/
+ * Copyright (c) 2019 Miro Mannino
+ * Licensed under the MIT license.
+ */
+' > LICENSE
 
-# CREATE THUMBNAIL DIRECTORY
-mkdir -p $THUMBNAIL_PATH
+# CONFIGURE
+GALLERY_TITLE="My Gallery"
+GALLERY_ROW_HEIGHT=150
+THUMBNAIL_QUALITY=83
+THUMBNAIL_PATH="thm"
 
-trap cleanup 1 2 3 6
+### ZE PROGAM STARTZ HERE ##############################################
 cleanup() {
     # DELETE BROKEN IMAGES
     printf '%s\n' "Removing incomplete thumbnails." >&2
     find $THUMBNAIL_PATH -name "*_tmp.*" -exec rm -v "{}" \;
 }
+trap cleanup 1 2 3 6
+
+# CREATE THUMBNAIL DIRECTORY
+mkdir -p $THUMBNAIL_PATH
 
 # PRINT HEADER
-printf '%s\n' '<html>
+printf '%s%s%s\n' '<html>
     <head>
-        <title>Bimbos</title>
-	<meta name="viewport" content="width=device-width">
+        <title>'"$GALLERY_TITLE"'</title>
+        <meta name="viewport" content="width=device-width">
         <link href="style.css" rel="stylesheet">
         <script src="justify.js"></script>
     </head>
@@ -33,13 +64,12 @@ add_image() {
     local FILE="$1"
     local THUMB="$THUMBNAIL_PATH/$2-$GALLERY_ROW_HEIGHT"
     local EXT="$3"
-    if ! [ -f "$FILE" ]; then return; fi;
     printf '%s\n' "Adding image: $FILE" >&2
     if ! [ -f "$THUMB.$EXT" ] && [ "$FILE" != "$THUMB.$EXT" ];
-	then convert -quality $THUMBNAIL_QUALITY -sharpen 2x2 \
+        then convert -quality $THUMBNAIL_QUALITY -sharpen 2x2 \
                      -coalesce -resize 1600x$GALLERY_ROW_HEIGHT\> \
                      -deconstruct "$FILE" "${THUMB}_tmp.$EXT" && \
-	mv "${THUMB}_tmp.$EXT" "$THUMB.$EXT"
+        mv "${THUMB}_tmp.$EXT" "$THUMB.$EXT"
     fi
     local WH="$(identify -format ' %w %h ' "$THUMB.$EXT" \
                 | awk '{ print "width="$1" height="$2 }')"
@@ -50,17 +80,18 @@ add_image() {
 
 ### MAIN LOOP ##########################################################
 
-# JPEG, PNG ORIGINAL -> JPEG THUMBNAIL
-for file in *.{png,jpg,jpeg,PNG,JPG,JPEG}; 
+for file in *.*;
 do
-#   add_image <original> <thumbnail_basename> <thumnail_format>
-    add_image "$file"     "${file%%.*}"         "jpeg"
-done
-
-# GIF ORIGINAL -> GIF THUMBNAIL
-for file in *.{gif,GIF}; 
-do
-    add_image "$file"     "${file%%.*}"         "gif"
+    if [ -f "$file" ];
+    then
+        case $(printf '%s' ${file##*.} | tr '[:upper:]' '[:lower:]') in
+            jpg|jpeg|png) 
+                add_image "$file" "${file%%.*}" "jpeg" ;;
+            gif)
+                add_image "$file" "${file%%.*}" "gif" ;;
+            *) printf '%s\n' "Ignoring: $file" >&2 ;;
+        esac
+    fi
 done
 
 ### MAIN LOOP END ######################################################
@@ -69,19 +100,17 @@ done
 printf '%s\n' "
         </div>
         <script>
-	    \$(\"#base\").justifiedGallery({
-	        rowHeight : $GALLERY_ROW_HEIGHT/0.8,
-	        maxRowHeight : $GALLERY_ROW_HEIGHT,
+            \$(\"#base\").justifiedGallery({
+                rowHeight : $GALLERY_ROW_HEIGHT/0.8,
+                maxRowHeight : $GALLERY_ROW_HEIGHT,
                 randomize : true,
-	        waitThumbnailsLoad : false,
-	        lastRow : \"nojustify\",
+                waitThumbnailsLoad : false,
+                lastRow : \"nojustify\",
                 margins : 3
-	    });
+            });
         </script>
     </body>
 </html>"
-
-
 
 # ASSETS (style.css, justify.js) #######################################
 printf '%s' '
