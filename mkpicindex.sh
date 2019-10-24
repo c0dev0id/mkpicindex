@@ -18,6 +18,7 @@ printf '%s' \
 # CONFIGURE
 GALLERY_TITLE="My Gallery" # browser title
 GALLERY_ROW_HEIGHT=150     # how high will the justified rows be?
+GALLERY_RANDOMIZE=true     # enable random sorting (true,false)
 BODY_STYLE="color:orange; background:black;" # <body style="?">
 THUMBNAIL_QUALITY=83       # quality for thumbnails
 THUMBNAIL_PATH="thm"       # relative path to thumbnail folder
@@ -101,7 +102,7 @@ printf '%s%s\n' \
             \$(\"#base\").justifiedGallery({
                 rowHeight : $GALLERY_ROW_HEIGHT/0.8,
                 maxRowHeight : $GALLERY_ROW_HEIGHT,
-                randomize : true,
+                randomize : $GALLERY_RANDOMIZE,
                 waitThumbnailsLoad : false,
                 lastRow : \"nojustify\",
                 margins : 3
