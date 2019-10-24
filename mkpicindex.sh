@@ -18,7 +18,7 @@ printf '%s' \
 # CONFIGURE
 GALLERY_TITLE="My Gallery" # browser title
 GALLERY_ROW_HEIGHT=150     # how high will the justified rows be?
-GALLERY_RANDOMIZE=true     # enable random sorting (true,false)
+GALLERY_RANDOMIZE=false     # enable random sorting (true,false)
 BODY_STYLE="color:orange; background:black;" # <body style="?">
 THUMBNAIL_QUALITY=83       # quality for thumbnails
 THUMBNAIL_PATH="thm"       # relative path to thumbnail folder
