@@ -16,3 +16,8 @@ files.
 
 Configuration can be done by altering `mkpicindex.sh`. Configuration
 variables are at the top (after the license).
+
+Dependencies:
+* Bourne Shell (sh)
+* Base64
+* ImageMagick
