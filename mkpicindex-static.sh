@@ -59,6 +59,12 @@ get_height_by_width() {
     debug "get_height_by_width: FILE=$F TARGET_WIDTH=$TW FILE_WxH=$WH RET_HEIGHT=$R"
 }
 
+bg_check() { 
+    T=$(pgrep convert | wc -l | awk '{ print $1 }');
+    debug "Threads: $T";
+    printf "$T"
+}
+
 # CREATE THUMBNAIL
 create_thumb() {
     # $F - original
@@ -72,18 +78,36 @@ create_thumb() {
     if ! [ -f "$THUMB_PATH/$T.gif" ] || [ -f "$THUMB_PATH/$T.jpeg" ];
     then
         case $(printf '%s' "${F##*.}" | tr '[:upper:]' '[:lower:]') in
-            gif) console "Creating Thumbnail: $THUMB_PATH/$T.gif"
-                 convert -quality $THUMB_QUALITY -sharpen 2x2 \
-                         -coalesce -resize 6000x$H\> \
-                         -deconstruct "$F" \
-                         "$THUMB_PATH/${T}_tmp.gif" && \
-                 mv "$THUMB_PATH/${T}_tmp.gif" "$THUMB_PATH/$T.gif"
-                printf '%s' "$THUMB_PATH/$T.gif" ;;
-            *)   convert -quality $THUMB_QUALITY -sharpen 2x2 \
-                         -resize 6000x$H\> "$F" \
-                         "$THUMB_PATH/${T}_tmp.jpeg" && \
-                 mv "$THUMB_PATH/${T}_tmp.jpeg" "$THUMB_PATH/$T.jpeg"
-                printf '%s' "$THUMB_PATH/$T.jpeg" ;;
+            gif) if [ "$(bg_check)" -gt "4" ]; then
+                    console "Creating Thumbnail (FG): $THUMB_PATH/$T.gif"
+                    convert -quality $THUMB_QUALITY -sharpen 2x2 \
+                            -coalesce -resize 6000x$H\> \
+                            -deconstruct "$F" \
+                            "$THUMB_PATH/${T}_tmp.gif" && \
+                    mv "$THUMB_PATH/${T}_tmp.gif" "$THUMB_PATH/$T.gif"
+                 else
+                    console "Creating Thumbnail (BG): $THUMB_PATH/$T.gif"
+                    convert -quality $THUMB_QUALITY -sharpen 2x2 \
+                            -coalesce -resize 6000x$H\> \
+                            -deconstruct "$F" \
+                            "$THUMB_PATH/${T}_tmp.gif" && \
+                    mv "$THUMB_PATH/${T}_tmp.gif" "$THUMB_PATH/$T.gif" &
+                 fi
+                 printf '%s' "$THUMB_PATH/$T.gif" ;;
+             *)   if [ "$(bg_check)" -gt "4" ]; then
+                    console "Creating Thumbnail (FG): $THUMB_PATH/$T.jpeg"
+                    convert -quality $THUMB_QUALITY -sharpen 2x2 \
+                             -resize 6000x$H\> "$F" \
+                             "$THUMB_PATH/${T}_tmp.jpeg" && \
+                    mv "$THUMB_PATH/${T}_tmp.jpeg" "$THUMB_PATH/$T.jpeg"
+                 else
+                    console "Creating Thumbnail (BG): $THUMB_PATH/$T.jpeg"
+                    convert -quality $THUMB_QUALITY -sharpen 2x2 \
+                             -resize 6000x$H\> "$F" \
+                             "$THUMB_PATH/${T}_tmp.jpeg" && \
+                    mv "$THUMB_PATH/${T}_tmp.jpeg" "$THUMB_PATH/$T.jpeg" &
+                 fi
+                 printf '%s' "$THUMB_PATH/$T.jpeg" ;;
         esac
     fi
 }
