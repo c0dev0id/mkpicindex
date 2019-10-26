@@ -27,7 +27,7 @@ MORE=1                      # trigger next loop
 cleanup() {
     # DELETE BROKEN IMAGES
     printf '%s\n' "Removing incomplete thumbnails." >&2
-    find $THUMB_PATH -name "*_tmp.*" -exec rm -v "{}" \;
+    find "$THUMB_PATH" -name "*_tmp.*" -exec rm -v "{}" \;
     exit 1
 }
 trap cleanup 1 2 3 6
@@ -42,11 +42,11 @@ console() { printf '%s\n' "$1" >&2; }
 # CALCULATORS
 get_width_by_height() {
     # returns aspect ratio calculated width
-    local F=$1  # image file
-    local TH=$2 # target height
+    local F="$1"  # image file
+    local TH="$2" # target height
     local WH="$(identify -format ' %w %h ' "$1" | awk '{ printf("%.3f %.3f",$1,$2) }')"
-    R="$(printf "$WH" | awk -vTH=$TH '{ printf("%.0f", TH*($1/$2)) }')"
-    printf '%.0f' "$(($R))"
+    local R="$(printf "$WH" | awk -vTH=$TH '{ printf("%.0f", TH*($1/$2)) }')"
+    printf '%.0f' "$R"
     debug "get_width_by_height: FILE=$F TARGET_HEIGHT=$TH FILE_WxH=$WH RET_WIDTH=$R"
 }
 get_height_by_width() {
@@ -54,7 +54,7 @@ get_height_by_width() {
     local F=$1  # image file
     local TW=$2 # target width
     local WH="$(identify -format ' %w %h ' "$1" | awk '{ printf("%.3f %.3f",$1,$2) }')"
-    R="$(printf "$WH" | awk -vTW=$TW '{ printf("%.0f", TW*($2/$1)) }')"
+    local R="$(printf "$WH" | awk -vTW=$TW '{ printf("%.0f", TW*($2/$1)) }')"
     printf '%.0f' "$R"
     debug "get_height_by_width: FILE=$F TARGET_WIDTH=$TW FILE_WxH=$WH RET_HEIGHT=$R"
 }
@@ -90,7 +90,7 @@ create_thumb() {
 
 # ADD IMAGE LOOP
 add_image() {
-    local F=$1 # image file
+    local F="$1" # image file
 
     # How wide would the image be when we rescale it to $ROW_HEIGHT?
     local NW=$(get_width_by_height "$F" "$ROW_HEIGHT")
@@ -107,7 +107,7 @@ add_image() {
 
         # calculate how much we need to stretch images to fill the
         # whole row.
-        RFH=$(printf "$G_ROW_WIDTH $WIDTH $ROW_HEIGHT" \
+        local RFH=$(printf "$G_ROW_WIDTH $WIDTH $ROW_HEIGHT" \
             | awk '{ printf("%.0f",$3*($2/$1)) }')
         debug "RFH=$RFH"
 
@@ -123,11 +123,11 @@ add_image() {
 
             # output HTML for image
             console "Adding Image: $RF"
-            printf "        <div class=\"image\">\n"
-            printf "            <a href=\"$RF\">\n"
-            printf "                <img width=$RFW height=$RFH src=\"$T\">"
-            printf "            </a>\n"
-            printf "        </div>\n"
+            printf '        <div class="image">\n'
+            printf '            <a href="'$RF'">\n'
+            printf '                <img width="'$RFW'" height="'$RFH'" src="'$T'">'
+            printf '            </a>\n'
+            printf '        </div>\n'
         done
 
         # we're done with this row now.
@@ -139,7 +139,7 @@ add_image() {
     else
         # add more items...
         debug "add_image: width has not been reached, continue loop."
-        G_ROW_WIDTH=$(( $G_ROW_WIDTH + $NW ))
+        G_ROW_WIDTH="$(( $G_ROW_WIDTH + $NW ))"
         G_ROW_FILES="$F|$G_ROW_FILES"
     fi
 }
@@ -179,13 +179,12 @@ printf '%s\n' \
     <body>
         <div class="base">
 '
-
 ### MAIN LOOP ##########################################################
 for F in *.*;
 do
     if [ -f "$F" ];
     then
-        case $(printf '%s' ${F##*.} | tr '[:upper:]' '[:lower:]') in
+        case "$(printf '%s' ${F##*.} | tr '[:upper:]' '[:lower:]')" in
             jpg|jpeg|png|gif) add_image "$F" ;;
             *) console "Ignoring: $F" ;;
         esac
@@ -198,26 +197,3 @@ printf '%s\n' \
 '       </div> 
     </body>
 </html>'
-
-
-
-
-
-
-### MAIN LOOP ##########################################################
-
-#for file in *.*;
-#do
-#    if [ -f "$file" ];
-#    then
-#        case $(printf '%s' ${file##*.} | tr '[:upper:]' '[:lower:]') in
-#            jpg|jpeg|png) 
-#                add_image "$file" "${file%%.*}" "jpeg" ;;
-#            gif)
-#                add_image "$file" "${file%%.*}" "gif" ;;
-#            *) printf '%s\n' "Ignoring: $file" >&2 ;;
-#        esac
-#    fi
-#done
-
-### MAIN LOOP END ######################################################
