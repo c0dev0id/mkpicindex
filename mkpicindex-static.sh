@@ -69,7 +69,7 @@ create_thumb() {
     local W="$2" # width
     local H="$3" # height
     local T="${F%%.*}-$H"
-    if ! [ -f "$THUMB_PATH/$T" ];
+    if ! [ -f "$THUMB_PATH/$T.gif" ] || [ -f "$THUMB_PATH/$T.jpeg" ];
     then
         case $(printf '%s' "${F##*.}" | tr '[:upper:]' '[:lower:]') in
             gif) console "Creating Thumbnail: $THUMB_PATH/$T.gif"
