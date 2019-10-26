@@ -32,7 +32,7 @@ mkdir -p "$THUMB_PATH"
 debug() { [ "$DEBUG" == "1" ] && printf '%s\n' "Debug: $1" >&2; }
 console() { printf '%s\n' "$1" >&2; }
 
-# CALCULATORS
+# CALCULATE BY ASPECT RATIO
 get_width_by_height() {
     # returns aspect ratio calculated width
     local F="$1"  # image file
@@ -42,27 +42,14 @@ get_width_by_height() {
     printf '%.0f' "$R"
     debug "get_width_by_height: FILE=$F TARGET_HEIGHT=$TH FILE_WxH=$WH RET_WIDTH=$R"
 }
-get_height_by_width() {
-    # returns aspect ratio calculated height
-    local F=$1  # image file
-    local TW=$2 # target width
-    local WH="$(identify -format ' %w %h ' "$1" | awk '{ printf("%.3f %.3f",$1,$2) }')"
-    local R="$(printf "$WH" | awk -vTW=$TW '{ printf("%.0f", TW*($2/$1)) }')"
-    printf '%.0f' "$R"
-    debug "get_height_by_width: FILE=$F TARGET_WIDTH=$TW FILE_WxH=$WH RET_HEIGHT=$R"
-}
-
+# TOO MANY CONVERT PROCSSES => WAIT
 bg_check() { 
     while [ $(pgrep convert | wc -l | awk '{ print $1 }') -gt 4 ];
-    do debug "Too many Threads, sleeping."; sleep 2; done
+    do console "More than 4 convert threads. Waiting..."; sleep 2; done
 }
 
 # CREATE THUMBNAIL
 create_thumb() {
-    # $F - original
-    # $W - width
-    # $H - height
-    # $R - thumbnailpath
     local F="$1" # original
     local W="$2" # width
     local H="$3" # height
@@ -89,7 +76,6 @@ create_thumb() {
 # ADD IMAGE LOOP
 add_image() {
     local F="$1" # image file
-
     # How wide would the image be when we rescale it to $ROW_HEIGHT?
     local NW=$(get_width_by_height "$F" "$ROW_HEIGHT")
     debug "add_image: FILE=$F NW=${NW}x$ROW_HEIGHT"
