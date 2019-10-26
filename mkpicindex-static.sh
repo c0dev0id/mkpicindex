@@ -24,13 +24,6 @@ G_ROW_FILES=""              # pipe separated files < WIDTH
 MORE=1                      # trigger next loop
 
 ### ZE PROGAM STARTZ HERE ##############################################
-cleanup() {
-    # DELETE BROKEN IMAGES
-    printf '%s\n' "Removing incomplete thumbnails." >&2
-    find "$THUMB_PATH" -name "*_tmp.*" -exec rm -v "{}" \;
-    exit 1
-}
-trap cleanup 1 2 3 6
 
 # CREATE THUMBNAIL DIRECTORY
 mkdir -p "$THUMB_PATH"
@@ -60,9 +53,8 @@ get_height_by_width() {
 }
 
 bg_check() { 
-    T=$(pgrep convert | wc -l | awk '{ print $1 }');
-    debug "Threads: $T";
-    printf "$T"
+    while [ $(pgrep convert | wc -l | awk '{ print $1 }') -gt 4 ];
+    do debug "Too many Threads, sleeping."; sleep 2; done
 }
 
 # CREATE THUMBNAIL
@@ -75,38 +67,20 @@ create_thumb() {
     local W="$2" # width
     local H="$3" # height
     local T="${F%%.*}-$H"
-    if ! [ -f "$THUMB_PATH/$T.gif" ] || [ -f "$THUMB_PATH/$T.jpeg" ];
+    if ! [ -f "$THUMB_PATH/$T.gif" ] && ! [ -f "$THUMB_PATH/$T.jpeg" ];
+    bg_check
     then
         case $(printf '%s' "${F##*.}" | tr '[:upper:]' '[:lower:]') in
-            gif) if [ "$(bg_check)" -gt "4" ]; then
-                    console "Creating Thumbnail (FG): $THUMB_PATH/$T.gif"
-                    convert -quality $THUMB_QUALITY -sharpen 2x2 \
-                            -coalesce -resize 6000x$H\> \
-                            -deconstruct "$F" \
-                            "$THUMB_PATH/${T}_tmp.gif" && \
-                    mv "$THUMB_PATH/${T}_tmp.gif" "$THUMB_PATH/$T.gif"
-                 else
-                    console "Creating Thumbnail (BG): $THUMB_PATH/$T.gif"
-                    convert -quality $THUMB_QUALITY -sharpen 2x2 \
-                            -coalesce -resize 6000x$H\> \
-                            -deconstruct "$F" \
-                            "$THUMB_PATH/${T}_tmp.gif" && \
-                    mv "$THUMB_PATH/${T}_tmp.gif" "$THUMB_PATH/$T.gif" &
-                 fi
+            gif) console "Creating Thumbnail: $THUMB_PATH/$T.gif"
+                 nohup convert -quality $THUMB_QUALITY -sharpen 2x2 \
+                         -coalesce -resize 6000x$H\> \
+                         -deconstruct "$F" \
+                         "$THUMB_PATH/$T.gif" >/dev/null 2>&1 &
                  printf '%s' "$THUMB_PATH/$T.gif" ;;
-             *)   if [ "$(bg_check)" -gt "4" ]; then
-                    console "Creating Thumbnail (FG): $THUMB_PATH/$T.jpeg"
-                    convert -quality $THUMB_QUALITY -sharpen 2x2 \
-                             -resize 6000x$H\> "$F" \
-                             "$THUMB_PATH/${T}_tmp.jpeg" && \
-                    mv "$THUMB_PATH/${T}_tmp.jpeg" "$THUMB_PATH/$T.jpeg"
-                 else
-                    console "Creating Thumbnail (BG): $THUMB_PATH/$T.jpeg"
-                    convert -quality $THUMB_QUALITY -sharpen 2x2 \
-                             -resize 6000x$H\> "$F" \
-                             "$THUMB_PATH/${T}_tmp.jpeg" && \
-                    mv "$THUMB_PATH/${T}_tmp.jpeg" "$THUMB_PATH/$T.jpeg" &
-                 fi
+             *)  console "Creating Thumbnail: $THUMB_PATH/$T.jpeg"
+                 nohup convert -quality $THUMB_QUALITY -sharpen 2x2 \
+                          -resize 6000x$H\> "$F" \
+                          "$THUMB_PATH/$T.jpeg" >/dev/null 2>&1 &
                  printf '%s' "$THUMB_PATH/$T.jpeg" ;;
         esac
     fi
