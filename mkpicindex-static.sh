@@ -10,151 +10,199 @@ printf '%s' \
 ' > LICENSE
 
 # CONFIGURE
-GALLERY_TITLE="My Gallery" # browser title
-GALLERY_WIDTH=1000         # how wide will the gallery be
-GALLERY_ROW_HEIGHT=150     # how high will the justified rows be?
-GALLERY_RANDOMIZE=false     # enable random sorting (true,false)
-BODY_STYLE="color:orange; background:black;" # <body style="?">
-THUMBNAIL_QUALITY=83       # quality for thumbnails
-THUMBNAIL_PATH="thm"       # relative path to thumbnail folder
-INCLUDE_HEADER="HEADER"    # file with html to include before gallery
-INCLUDE_FOOTER="FOOTER"    # file with html to include after gallery
+TITLE="My Gallery"          # browser title
+WIDTH=1000                  # how wide will the gallery be
+ROW_HEIGHT=150              # how high will the justified rows be?
+THUMB_QUALITY=83            # quality for thumbnails
+THUMB_PATH="thm"            # relative path to thumbnail folder
+THUMB_PADDING="6"           # image padding
+DEBUG=$1                    # debug output
+
+# GLOBAL TMP VARIABLES
+G_ROW_WIDTH=0               # combined pic width   < WIDTH @ ROW_HEIGHT
+G_ROW_FILES=""              # pipe separated files < WIDTH
+MORE=1                      # trigger next loop
 
 ### ZE PROGAM STARTZ HERE ##############################################
 cleanup() {
     # DELETE BROKEN IMAGES
     printf '%s\n' "Removing incomplete thumbnails." >&2
-    find $THUMBNAIL_PATH -name "*_tmp.*" -exec rm -v "{}" \;
+    find $THUMB_PATH -name "*_tmp.*" -exec rm -v "{}" \;
     exit 1
 }
 trap cleanup 1 2 3 6
 
 # CREATE THUMBNAIL DIRECTORY
-mkdir -p $THUMBNAIL_PATH
+mkdir -p "$THUMB_PATH"
 
-# INCLUDE CUSTOM HEADER & FOOTER
-FOOTER=$([ -f $INCLUDE_FOOTER ] && cat $INCLUDE_FOOTER | sed 's/^/        /g')
-HEADER=$([ -f $INCLUDE_HEADER ] && cat $INCLUDE_HEADER | sed 's/^/        /g')
+# OUTPUT HELPER
+debug() { [ "$DEBUG" == "1" ] && printf '%s\n' "Debug: $1" >&2; }
+console() { printf '%s\n' "$1" >&2; }
 
-# PRINT HEADER
-printf '%s%s%s%s%s\n' \
-"<html>
-    <head>
-        <title>$GALLERY_TITLE</title>
-        <meta name=\"viewport\" content=\"width=device-width\">
-    </head>
-    <body style=\"$BODY_STYLE\">
-$HEADER"
-
-
-# take one image
-  # resize to $ROW_HEIGHT
-    # check if width exceeds $GALLERY_WIDTH
-      # if not: take next picture
-        # resize to $ROW_HEIGHT
-          # check if first picture width + second picture width exceeds $GALLERY_WIDTH
-      # if yes: 
-
-
-
-# $1 - Width
-# $2 - Height
-# <  - Ratio (f)
-get_aspect_ratio() {
-    W=$1 # Width
-    H=$2 # Height
-    printf '%f' "$(printf "$FILE_WH" | awk -vTH=$TARGET_H '{ printf("%f", TH*($2/$1)) }')"
+# CALCULATORS
+get_width_by_height() {
+    # returns aspect ratio calculated width
+    local F=$1  # image file
+    local TH=$2 # target height
+    local WH="$(identify -format ' %w %h ' "$1" | awk '{ printf("%.3f %.3f",$1,$2) }')"
+    R="$(printf "$WH" | awk -vTH=$TH '{ printf("%.0f", TH*($1/$2)) }')"
+    printf '%.0f' "$(($R))"
+    debug "get_width_by_height: FILE=$F TARGET_HEIGHT=$TH FILE_WxH=$WH RET_WIDTH=$R"
+}
+get_height_by_width() {
+    # returns aspect ratio calculated height
+    local F=$1  # image file
+    local TW=$2 # target width
+    local WH="$(identify -format ' %w %h ' "$1" | awk '{ printf("%.3f %.3f",$1,$2) }')"
+    R="$(printf "$WH" | awk -vTW=$TW '{ printf("%.0f", TW*($2/$1)) }')"
+    printf '%.0f' "$R"
+    debug "get_height_by_width: FILE=$F TARGET_WIDTH=$TW FILE_WxH=$WH RET_HEIGHT=$R"
 }
 
-# CALCULATE ASPECT RATIO WITH FOR TARGET ROW HEIGHT
-# $1 - path to image
-# $2 - target row height
-# ret - calculated width for target height
-get_width() {
-    local FILE="$1";
-    local TARGET_H="$2";
-    local FILE_WH="$(identify -format ' %w %h ' "$FILE" | awk '{ print $1" "$2 }')"
-    printf '%.0f' "$(printf "$FILE_WH" | awk -vTH=$TARGET_H '{ printf("%f", TH*($2/$1)) }')"
+# CREATE THUMBNAIL
+create_thumb() {
+    # $F - original
+    # $W - width
+    # $H - height
+    # $R - thumbnailpath
+    local F="$1" # original
+    local W="$2" # width
+    local H="$3" # height
+    local T="${F%%.*}-$H"
+    if ! [ -f "$THUMB_PATH/$T" ];
+    then
+        case $(printf '%s' "${F##*.}" | tr '[:upper:]' '[:lower:]') in
+            gif) console "Creating Thumbnail: $THUMB_PATH/$T.gif"
+                 convert -quality $THUMB_QUALITY -sharpen 2x2 \
+                         -coalesce -resize 6000x$H\> \
+                         -deconstruct "$F" \
+                         "$THUMB_PATH/${T}_tmp.gif" && \
+                 mv "$THUMB_PATH/${T}_tmp.gif" "$THUMB_PATH/$T.gif"
+                printf '%s' "$THUMB_PATH/$T.gif" ;;
+            *)   convert -quality $THUMB_QUALITY -sharpen 2x2 \
+                         -resize 6000x$H\> "$F" \
+                         "$THUMB_PATH/${T}_tmp.jpeg" && \
+                 mv "$THUMB_PATH/${T}_tmp.jpeg" "$THUMB_PATH/$T.jpeg"
+                printf '%s' "$THUMB_PATH/$T.jpeg" ;;
+        esac
+    fi
 }
 
-get_streched_height() {
-    printf "$GALLERY_HEIGHT $CURRENT_ROW_WIDTH $GALLERY_WIDTH" \
-        | awk '{ printf("%f", ($2/$1)*$3) }'
-}
-
-# ADD NEXT IMAGE AND DECIDE
-# $1 - path to image
-CURRENT_ROW_WIDTH=0
-CURRENT_ROW_FILES=""
+# ADD IMAGE LOOP
 add_image() {
-    local FILE=$1
-    local NEXT_W=$(get_width "$FILE" "$GALLERY_ROW_HEIGHT")
-    # when the next item with is too much for the current row..
-    if [ $(( $CURRENT_ROW_WIDTH + $NEXT_W )) > $GALLERY_WIDTH ];
-        # build gallery
+    local F=$1 # image file
 
-        # calculate aspect ratio of row_height and all items
-        # calculate target image height with gallery_width
-        get_streched_height;
-        # loop at images and resize to streched height
-        # resize items
-        # output souce
+    # How wide would the image be when we rescale it to $ROW_HEIGHT?
+    local NW=$(get_width_by_height "$F" "$ROW_HEIGHT")
+    debug "add_image: FILE=$F NW=${NW}x$ROW_HEIGHT"
+
+    # We add images and their width to $G_ROW_WIDTH until $WIDTH will
+    # be exceeded.
+    if [ "$(( $G_ROW_WIDTH + $NW ))" -gt "$WIDTH" ]; then
+
+        debug "add_image: max width reached with F=$F @ $G_ROW_WIDTH"
+
+        # we're building a row now
+        printf "<div class=\"row\">\n";
+
+        # calculate how much we need to stretch images to fill the
+        # whole row.
+        RFH=$(printf "$G_ROW_WIDTH $WIDTH $ROW_HEIGHT" \
+            | awk '{ printf("%.0f",$3*($2/$1)) }')
+        debug "RFH=$RFH"
+
+        # loop through the images in this row and recalculate
+        # them with their new, real height.
+        local IFS='|'; for RF in $G_ROW_FILES;
+        do
+            local RFW=$(($(get_width_by_height "$RF" "$RFH") - 2*$THUMB_PADDING))
+            debug "add_image: adding file: F=$RF with W=$RFW H=$RFH"
+
+            local T=$(create_thumb "$RF" "$RFW" "$RFH")
+            debug "add_image: created thumbnail $T"
+
+            # output HTML for image
+            console "Adding Image: $RF"
+            printf "        <div class=\"image\">\n"
+            printf "            <a href=\"$RF\">\n"
+            printf "                <img width=$RFW height=$RFH src=\"$T\">"
+            printf "            </a>\n"
+            printf "        </div>\n"
+        done
+
+        # we're done with this row now.
+        printf "</div>\n";
 
         # set leftover file as for next iteration
-        CURRENT_ROW_WIDTH="$NEXT_W"
-        CURRENT_ROW_FILES="|$FILE"
+        G_ROW_WIDTH="$NW"
+        G_ROW_FILES="$F|"
     else
         # add more items...
-        CURRENT_ROW_WIDTH=$(( $CURRENT_ROW_WIDTH + $NEXT_W ))
-        CURRENT_ROW_FILES="$CURRENT_ROW_FILES|$FILE"
+        debug "add_image: width has not been reached, continue loop."
+        G_ROW_WIDTH=$(( $G_ROW_WIDTH + $NW ))
+        G_ROW_FILES="$F|$G_ROW_FILES"
     fi
-
-
 }
 
+# HEADER
+printf '%s\n' \
+'<html>
+    <head>
+    <meta name="viewport" content="width=device-width">
+    <title>My Gallery</title>
+        <style>
+        html {
+            background: black;
+            color: orange;
+        }
+        .base {
+            margin-left: auto;
+            margin-right: auto;
+            width: min-content;
+        }
+        .row {
+            display: block;
+            float: clear;
+            width: max-content;
+            margin-left: auto;
+            margin-right: auto;
+            white-space: nowrap;
+        }
+        .image {
+            float: left;
+            width: fit-content;
+            height: fit-content;
+            padding: '"$THUMB_PADDING"';
+        }
+        </style>
+    </head>
+    <body>
+        <div class="base">
+'
 
-
-for file in *.*;
+### MAIN LOOP ##########################################################
+for F in *.*;
 do
-    if [ -f "$file" ];
+    if [ -f "$F" ];
     then
-        case $(printf '%s' ${file##*.} | tr '[:upper:]' '[:lower:]') in
-            jpg|jpeg|png) 
-
-
-
-            *) printf '%s\n' "Ignoring: $file" >&2 ;;
+        case $(printf '%s' ${F##*.} | tr '[:upper:]' '[:lower:]') in
+            jpg|jpeg|png|gif) add_image "$F" ;;
+            *) console "Ignoring: $F" ;;
         esac
     fi
 done
+### MAIN LOOP END ######################################################
+
+# FOOTER
+printf '%s\n' \
+'       </div> 
+    </body>
+</html>'
 
 
 
 
 
-
-## RESCALE AND ADD IMAGE
-## PARAM 1: original
-##       2: thumbnail_basename
-##       3: thumbnail_format (extension)
-#add_image() {
-#    local FILE="$1"
-#    get_width "$1" 300
-#    local THUMB="$THUMBNAIL_PATH/$2-$GALLERY_ROW_HEIGHT"
-#    local EXT="$3"
-#    printf '%s\n' "Adding image: $FILE" >&2
-#    if ! [ -f "$THUMB.$EXT" ] && [ "$FILE" != "$THUMB.$EXT" ];
-#        then convert -quality $THUMBNAIL_QUALITY -sharpen 2x2 \
-#                     -coalesce -resize 6000x$GALLERY_ROW_HEIGHT\> \
-#                     -deconstruct "$FILE" "${THUMB}_tmp.$EXT" && \
-#        mv "${THUMB}_tmp.$EXT" "$THUMB.$EXT"
-#    fi
-#    local WH="$(identify -format ' %w %h ' "$THUMB.$EXT" \
-#                | awk '{ print "width="$1" height="$2 }')"
-#    printf '            %s\n' "<a href=\"$FILE\">"
-#    printf '                %s\n' "<img $WH src=\"$THUMB.$EXT\">"
-#    printf '            %s\n' '</a>'
-#}
 
 ### MAIN LOOP ##########################################################
 
@@ -173,10 +221,3 @@ done
 #done
 
 ### MAIN LOOP END ######################################################
-
-# PRINT FOOTER
-printf '%s%s\n' \
-"        </div>
-$FOOTER
-    </body>
-</html>"
