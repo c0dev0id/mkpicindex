@@ -16,7 +16,10 @@ ROW_HEIGHT=150              # how high will the justified rows be?
 THUMB_QUALITY=83            # quality for thumbnails
 THUMB_PATH="thm"            # relative path to thumbnail folder
 THUMB_PADDING="6"           # image padding
-DEBUG=$1                    # debug output
+
+# TECHNICAL STUFF
+DEBUG=0                     # debug output
+THREADS=4
 
 # GLOBAL TMP VARIABLES
 G_ROW_WIDTH=0               # combined pic width   < WIDTH @ ROW_HEIGHT
@@ -43,9 +46,9 @@ get_width_by_height() {
     debug "get_width_by_height: FILE=$F TARGET_HEIGHT=$TH FILE_WxH=$WH RET_WIDTH=$R"
 }
 # TOO MANY CONVERT PROCSSES => WAIT
-bg_check() { 
-    while [ $(pgrep convert | wc -l | awk '{ print $1 }') -gt 4 ];
-    do console "More than 4 convert threads. Waiting..."; sleep 2; done
+thread_check() { 
+    while [ $(pgrep convert | wc -l | awk '{ print $1 }') -gt $THREADS ];
+    do console "More than $THREADS convert threads. Waiting..."; sleep 2; done
 }
 
 # CREATE THUMBNAIL
@@ -54,9 +57,12 @@ create_thumb() {
     local W="$2" # width
     local H="$3" # height
     local T="${F%%.*}-$H"
-    if ! [ -f "$THUMB_PATH/$T.gif" ] && ! [ -f "$THUMB_PATH/$T.jpeg" ];
-    bg_check
-    then
+    if [ -f "$THUMB_PATH/$T.gif" ]; 
+        then printf '%s' "$THUMB_PATH/$T.gif"
+    elif [ -f "$THUMB_PATH/$T.jpeg" ];
+        then printf '%s' "$THUMB_PATH/$T.jpeg"
+    else
+        thread_check
         case $(printf '%s' "${F##*.}" | tr '[:upper:]' '[:lower:]') in
             gif) console "Creating Thumbnail: $THUMB_PATH/$T.gif"
                  nohup convert -quality $THUMB_QUALITY -sharpen 2x2 \
@@ -87,7 +93,7 @@ add_image() {
         debug "add_image: max width reached with F=$F @ $G_ROW_WIDTH"
 
         # we're building a row now
-        printf "<div class=\"row\">\n";
+        printf "        <div class=\"row\">\n";
 
         # calculate how much we need to stretch images to fill the
         # whole row.
@@ -107,15 +113,15 @@ add_image() {
 
             # output HTML for image
             console "Adding Image: $RF"
-            printf '        <div class="image">\n'
-            printf '            <a href="'$RF'">\n'
-            printf '                <img width="'$RFW'" height="'$RFH'" src="'$T'">'
-            printf '            </a>\n'
-            printf '        </div>\n'
+            printf '            <div class="image">\n'
+            printf '                <a href="'$RF'">\n'
+            printf '                    <img width="'$RFW'" height="'$RFH'" src="'$T'">\n'
+            printf '                </a>\n'
+            printf '            </div>\n'
         done
 
         # we're done with this row now.
-        printf "</div>\n";
+        printf "        </div>\n";
 
         # set leftover file as for next iteration
         G_ROW_WIDTH="$NW"
