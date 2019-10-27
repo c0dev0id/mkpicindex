@@ -11,8 +11,8 @@ printf '%s' \
 
 # CONFIGURE
 TITLE="My Gallery"          # browser title
-WIDTH=1000                  # how wide will the gallery be
-ROW_HEIGHT=150              # how high will the justified rows be?
+WIDTH=850                   # how wide will the gallery be
+ROW_HEIGHT=180              # how high will the justified rows be?
 THUMB_QUALITY=83            # quality for thumbnails
 THUMB_PATH="thm"            # relative path to thumbnail folder
 THUMB_PADDING="6"           # image padding
@@ -20,6 +20,41 @@ THUMB_PADDING="6"           # image padding
 # TECHNICAL STUFF
 DEBUG=0                     # debug output
 THREADS=4
+
+# PRINT HELP / USAGE TEXT
+usage() {
+    printf '%s\n' \
+'Usage: mkpicindex [option] > outfile.html
+    Options:
+        -t "My Gallery"  - Title
+        -w 850           - Width
+        -h 180           - Row height
+        -q 83            - Thumbnail quality
+        -b 6             - Thumbnail border
+        -p 8             - Max convert processes
+        -d               - Debug mode
+        -h               - This help
+'
+    exit 2
+}
+
+# OVERIDE DEFAULTS
+while getopts 't:w:h:b:q:p:d' c
+do
+  case $c in
+    t) TITLE="$OPTARG" ;;
+    w) WIDTH="$OPTARG" ;;
+    h) ROW_HEIGHT="$OPTARG" ;;
+    q) QUALITY="$OPTARG" ;;
+    b) THUMB_PADDING="$OPTARG" ;;
+    p) THREADS="$OPTARG" ;;
+    d) DEBUG=1 ;;
+    ?|*) usage; ;;
+  esac
+done
+
+# PRINT USAGE IF OUTPUT IS NOT REDIRECTED
+[ "$DEBUG" != 1 ] && test -t 1 && usage;
 
 # GLOBAL TMP VARIABLES
 G_ROW_WIDTH=0               # combined pic width   < WIDTH @ ROW_HEIGHT
@@ -139,7 +174,7 @@ printf '%s\n' \
 '<html>
     <head>
     <meta name="viewport" content="width=device-width">
-    <title>My Gallery</title>
+    <title>'"$TITLE"'</title>
         <style>
         html {
             background: black;
