@@ -24,16 +24,17 @@ THREADS=4
 # PRINT HELP / USAGE TEXT
 usage() {
     printf '%s\n' \
-'Usage: mkpicindex [option] > outfile.html
-    Options:
-        -t "My Gallery"  - Title
-        -w 850           - Width
-        -h 180           - Row height
-        -q 83            - Thumbnail quality
-        -b 6             - Thumbnail border
-        -p 8             - Max convert processes
-        -d               - Debug mode
-        -h               - This help
+'Usage: mkpicindex [arguments] > file.html
+
+Arguments:
+  -t "My Gallery" Gallery title
+  -w 850          Gallery main area width
+  -h 180          Row height (thumbnail size)
+  -q 83           Thumbnail quality
+  -b 6            Thumbnail border (padding)
+  -p 8            Max. parallel conversion processes
+  -d              Enable debug mode (verbose output)
+  -h              Usage (this text)
 '
     exit 2
 }
