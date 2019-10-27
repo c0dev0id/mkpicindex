@@ -78,7 +78,9 @@ get_width_by_height() {
     # returns aspect ratio calculated width
     local F="$1"  # image file
     local TH="$2" # target height
-    local WH="$(identify -format ' %w %h ' "$1" | awk '{ printf("%.3f %.3f",$1,$2) }')"
+    local WH="$(identify -format ' %w %h ' "$1" | awk '{ printf("%.0f %.0f",$1,$2) }')"
+    local W="$(printf "$WH" | awk '{ print $1 }')"
+    local H="$(printf "$WH" | awk '{ print $2 }')"
     local R="$(printf "$WH" | awk -vTH=$TH '{ printf("%.0f", TH*($1/$2)) }')"
     printf '%.0f' "$R"
     debug "get_width_by_height: FILE=$F TARGET_HEIGHT=$TH FILE_WxH=$WH RET_WIDTH=$R"
@@ -94,6 +96,7 @@ convert_raw() {
     F="$1" # raw image
     if ! [ -f "${F%%.*}_preview.jpg" ]; then
         dcraw -e -c "$F" > "${F%%.*}_preview.jpg"
+        jhead -autorot "${F%%.*}_preview.jpg"
         console "Raw Conversion: ${F%%.*}_preview.jpg"
     fi
 }
@@ -119,7 +122,7 @@ create_thumb() {
                  printf '%s' "$THUMB_PATH/$T.gif" ;;
              *)  console "Creating Thumbnail: $THUMB_PATH/$T.jpeg"
                  nohup convert -quality $THUMB_QUALITY -sharpen 2x2 \
-                          -resize 6000x$H\> "$F" \
+                               -auto-orient -resize 6000x$H\> "$F" \
                           "$THUMB_PATH/$T.jpeg" >/dev/null 2>&1 &
                  printf '%s' "$THUMB_PATH/$T.jpeg" ;;
         esac
