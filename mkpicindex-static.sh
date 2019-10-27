@@ -220,7 +220,7 @@ do
     then
         case "$(printf '%s' ${F##*.} | tr '[:upper:]' '[:lower:]')" in
             jpg|jpeg|png|gif) add_image "$F" ;;
-            cr2|dng|nef)      extract_raw "$F" && \
+            cr2|dng|nef)      convert_raw "$F" && \
                               add_image "${F%%.*}_preview.jpg" ;;
             *)                console "Ignoring: $F" ;;
         esac
