@@ -24,7 +24,9 @@ THREADS=4
 # PRINT HELP / USAGE TEXT
 usage() {
     printf '%s\n' \
-'Usage: mkpicindex [arguments] > file.html
+'mkpicindex - Version: $Id$
+
+Usage: mkpicindex [arguments] > file.html
 
 Arguments:
   -t "My Gallery" Gallery title
