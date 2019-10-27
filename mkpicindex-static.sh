@@ -96,7 +96,7 @@ convert_raw() {
     F="$1" # raw image
     if ! [ -f "${F%%.*}_preview.jpg" ]; then
         dcraw -e -c "$F" > "${F%%.*}_preview.jpg"
-        jhead -autorot "${F%%.*}_preview.jpg"
+        jhead -q -autorot "${F%%.*}_preview.jpg"
         console "Raw Conversion: ${F%%.*}_preview.jpg"
     fi
 }
