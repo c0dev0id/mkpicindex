@@ -9,6 +9,15 @@ printf '%s' \
  */
 ' > LICENSE
 
+# DEPENDENCIES
+# - ImageMagic (identify, convert)
+# - raw only: jhead
+# - raw only: dcraw
+
+# KNOWN BUGS / TODOS
+# - leftover images won't be added
+
+
 # CONFIGURE
 TITLE="My Gallery"          # browser title
 WIDTH=1000                  # how wide will the gallery be
