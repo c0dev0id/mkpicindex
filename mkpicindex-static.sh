@@ -88,6 +88,12 @@ thread_check() {
     while [ $(pgrep convert | wc -l | awk '{ print $1 }') -gt $(($THREADS-1)) ];
     do console "Process Limit ($THREADS) reached. Waiting..."; sleep 2; done
 }
+# EXTACT CAMERA IMAGE FROM RAW
+convert_raw() {
+  F="$1" # raw image
+  dcraw -e -c "$F" > "${F%%.*}_preview.jpg" # DCR
+  # XXX Dcraw may export a PPM file.
+}
 
 # CREATE THUMBNAIL
 create_thumb() {
@@ -213,8 +219,10 @@ do
     if [ -f "$F" ];
     then
         case "$(printf '%s' ${F##*.} | tr '[:upper:]' '[:lower:]')" in
-            jpg|jpeg|png|gif|cr2|dng|nef) add_image "$F" ;;
-            *) console "Ignoring: $F" ;;
+            jpg|jpeg|png|gif) add_image "$F" ;;
+            cr2|dng|nef)      extract_raw "$F" && \
+                              add_image "${F%%.*}_preview.jpg" ;;
+            *)                console "Ignoring: $F" ;;
         esac
     fi
 done
