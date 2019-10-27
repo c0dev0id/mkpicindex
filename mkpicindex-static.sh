@@ -90,9 +90,12 @@ thread_check() {
 }
 # EXTACT CAMERA IMAGE FROM RAW
 convert_raw() {
-  F="$1" # raw image
-  dcraw -e -c "$F" > "${F%%.*}_preview.jpg" # DCR
-  # XXX Dcraw may export a PPM file.
+    # XXX dcraw may export a PPM file.
+    F="$1" # raw image
+    if ! [ -f "${F%%.*}_preview.jpg" ]; then
+        dcraw -e -c "$F" > "${F%%.*}_preview.jpg"
+        console "Raw Conversion: ${F%%.*}_preview.jpg"
+    fi
 }
 
 # CREATE THUMBNAIL
