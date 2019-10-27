@@ -19,7 +19,7 @@ THUMB_PADDING="6"           # image padding
 
 # TECHNICAL STUFF
 DEBUG=0                     # debug output
-THREADS=8
+PROCS=8
 
 # PRINT HELP / USAGE TEXT
 usage() {
@@ -50,7 +50,7 @@ do
     h) ROW_HEIGHT="$OPTARG" ;;
     q) QUALITY="$OPTARG" ;;
     b) THUMB_PADDING="$OPTARG" ;;
-    p) THREADS="$OPTARG" ;;
+    p) PROCS="$OPTARG" ;;
     d) DEBUG=1 ;;
     ?|*) usage; ;;
   esac
@@ -78,17 +78,15 @@ get_width_by_height() {
     # returns aspect ratio calculated width
     local F="$1"  # image file
     local TH="$2" # target height
-    local WH="$(identify -format ' %w %h ' "$1" | awk '{ printf("%.0f %.0f",$1,$2) }')"
-    local W="$(printf "$WH" | awk '{ print $1 }')"
-    local H="$(printf "$WH" | awk '{ print $2 }')"
-    local R="$(printf "$WH" | awk -vTH=$TH '{ printf("%.0f", TH*($1/$2)) }')"
+    local R="$(identify -format ' %w %h ' "$1" | awk -vTH=$TH \
+                                     '{ printf("%.0f", TH*($1/$2)) }')"
     printf '%.0f' "$R"
-    debug "get_width_by_height: FILE=$F TARGET_HEIGHT=$TH FILE_WxH=$WH RET_WIDTH=$R"
+    debug "get_width_by_height: FILE=$F TARGET_HEIGHT=$TH RET_WIDTH=$R"
 }
 # TOO MANY CONVERT PROCSSES => WAIT
 thread_check() { 
-    while [ $(pgrep convert | wc -l | awk '{ print $1 }') -gt $(($THREADS-1)) ];
-    do console "Process Limit ($THREADS) reached. Waiting..."; sleep 2; done
+    while [ $(pgrep convert | wc -l | awk '{ print $1 }') -gt $(($PROCS-1)) ];
+    do console "Process Limit ($PROCS) reached. Waiting..."; sleep 2; done
 }
 # EXTACT CAMERA IMAGE FROM RAW
 convert_raw() {
