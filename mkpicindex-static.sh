@@ -85,8 +85,8 @@ get_width_by_height() {
 }
 # TOO MANY CONVERT PROCSSES => WAIT
 thread_check() { 
-    while [ $(pgrep convert | wc -l | awk '{ print $1 }') -gt $THREADS ];
-    do console "More than $THREADS convert threads. Waiting..."; sleep 2; done
+    while [ $(pgrep convert | wc -l | awk '{ print $1 }') -gt $(($THREADS-1)) ];
+    do console "Process Limit ($THREADS) reached. Waiting..."; sleep 2; done
 }
 
 # CREATE THUMBNAIL
