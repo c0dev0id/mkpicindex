@@ -11,7 +11,7 @@ printf '%s' \
 
 # CONFIGURE
 TITLE="My Gallery"          # browser title
-WIDTH=850                   # how wide will the gallery be
+WIDTH=1000                  # how wide will the gallery be
 ROW_HEIGHT=180              # how high will the justified rows be?
 THUMB_QUALITY=83            # quality for thumbnails
 THUMB_PATH="thm"            # relative path to thumbnail folder
@@ -19,7 +19,7 @@ THUMB_PADDING="6"           # image padding
 
 # TECHNICAL STUFF
 DEBUG=0                     # debug output
-THREADS=4
+THREADS=8
 
 # PRINT HELP / USAGE TEXT
 usage() {
@@ -213,7 +213,7 @@ do
     if [ -f "$F" ];
     then
         case "$(printf '%s' ${F##*.} | tr '[:upper:]' '[:lower:]')" in
-            jpg|jpeg|png|gif) add_image "$F" ;;
+            jpg|jpeg|png|gif|cr2|dng|nef) add_image "$F" ;;
             *) console "Ignoring: $F" ;;
         esac
     fi
