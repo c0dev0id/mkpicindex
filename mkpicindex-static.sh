@@ -14,8 +14,9 @@ printf '%s' \
 # - raw only: jhead
 # - raw only: dcraw
 
-# KNOWN BUGS / TODOS
-# - leftover images won't be added
+# LIMITATIONS
+# - leftover images on the last row won't be added
+# - the thumbnail cache is not cleaned automaticall
 
 
 # CONFIGURE
@@ -73,8 +74,6 @@ G_ROW_WIDTH=0               # combined pic width   < WIDTH @ ROW_HEIGHT
 G_ROW_FILES=""              # pipe separated files < WIDTH
 MORE=1                      # trigger next loop
 
-### ZE PROGAM STARTZ HERE ##############################################
-
 # CREATE THUMBNAIL DIRECTORY
 mkdir -p "$THUMB_PATH"
 
@@ -92,11 +91,13 @@ get_width_by_height() {
     printf '%.0f' "$R"
     debug "get_width_by_height: FILE=$F TARGET_HEIGHT=$TH RET_WIDTH=$R"
 }
+
 # TOO MANY CONVERT PROCSSES => WAIT
 thread_check() { 
     while [ $(pgrep convert | wc -l | awk '{ print $1 }') -gt $(($PROCS-1)) ];
-    do console "Process Limit ($PROCS) reached. Waiting..."; sleep 2; done
+    do debug "Process Limit ($PROCS) reached. Waiting..."; sleep 2; done
 }
+
 # EXTACT CAMERA IMAGE FROM RAW
 convert_raw() {
     # XXX dcraw may export a PPM file.
